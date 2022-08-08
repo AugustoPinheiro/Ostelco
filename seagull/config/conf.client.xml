@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<configuration name="Simple IP Client Conf">
+ 
+  <define entity="transport"
+    name="trans-1"
+    file="libtrans_ip.so"
+    create_function="create_cipio_instance"
+    delete_function="delete_cipio_instance"
+    init-args="type=tcp">
+  </define>
+ 
+  <define entity="channel"
+    name="channel-1"
+    protocol="diameter-v1"
+    transport="trans-1"
+    open-args="mode=client;dest=172.16.238.3:3868">
+  </define>
+ 
+  <define entity="traffic-param" name="call-rate" value="6000"> </define>
+  <define entity="traffic-param" name="display-period" value="1"> </define>
+  <define entity="traffic-param" name="log-stat-period" value="0"> </define>
+  <define entity="traffic-param" name="display-scenario-stat" value="true"> </define>
+  <define entity="traffic-param" name="display-protocol-stat" value="true"> </define>
+
+
+  <!--define entity="traffic-param" name="max-send" value="8000"> </define>
+  <define entity="traffic-param" name="max-receive" value="8000"> </define-->
+
+  <define entity="traffic-param" name="max-simultaneous-calls" value="50000"> </define>
+  <define entity="traffic-param" name="select-timeout-ms" value="5"> </define>
+  <define entity="traffic-param" name="call-timeout-ms" value="0"> </define>
+
+  <define entity="traffic-param" name="model-traffic-select" value="best-effort"> </define>
+
+  <define entity="traffic-param" name="number-calls" value="120000"> </define>
+  
+</configuration>

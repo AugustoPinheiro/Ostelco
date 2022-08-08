@@ -1,0 +1,512 @@
+swagger: "2.0"
+info:
+  title: "Houston Admin API"
+  description: "The APIs for the Houston Admin Client."
+  version: "2.0.0"
+host: "houston-api.dev.oya.world"
+x-google-endpoints:
+  - name: "houston-api.dev.oya.world"
+    allowCors: true
+schemes:
+  - "https"
+paths:
+  "/support/profiles/{query}":
+    get:
+      description: "Get list of customers for the given email-id or msisdn (url encoded)."
+      produces:
+      - application/json
+      operationId: "getCustomerList"
+      responses:
+        200:
+          description: "Get the profile for this user."
+          schema:
+            $ref: '#/definitions/CustomerList'
+        404:
+          description: "Profile not found."
+      security:
+      - auth0_jwt: []
+      parameters:
+      - name: query
+        in: path
+        description: "The id of the user (msisdn or email)"
+        required: true
+        type: string
+  "/support/profiles/{id}/subscriptions":
+    get:
+      description: "Get subscription (msisdn) for the user."
+      produces:
+        - application/json
+      operationId: "getSubscriptions"
+      responses:
+        200:
+          description: "Get subscriptions for this user."
+          schema:
+            $ref: '#/definitions/SubscriptionList'
+        404:
+          description: "No subscription found for this user."
+      security:
+        - auth0_jwt: []
+      parameters:
+        - name: id
+          in: path
+          description: "The customerId of the user"
+          required: true
+          type: string
+  "/support/profiles/{id}/scans":
+    get:
+      description: "Get eKYC scan information for the user."
+      produces:
+        - application/json
+      operationId: "getAllScanInformation"
+      responses:
+        200:
+          description: "Retrieved scan information for this user."
+          schema:
+            $ref: '#/definitions/ScanInformationList'
+        404:
+          description: "No scan information found for this user."
+      security:
+        - auth0_jwt: []
+      parameters:
+        - name: id
+          in: path
+          description: "The customerId of the user"
+          required: true
+          type: string
+  "/support/bundles/{id}":
+    get:
+      description: "Get bundles (balance) for the user (identified by email)."
+      produces:
+      - application/json
+      operationId: "getBundlesById"
+      responses:
+        200:
+          description: "Get bundles for this user."
+          schema:
+            $ref: '#/definitions/BundleList'
+        404:
+          description: "No bundle found for this user."
+      security:
+      - auth0_jwt: []
+      parameters:
+      - name: id
+        in: path
+        description: "The customerId of the user"
+        required: true
+        type: string
+  "/support/purchases/{id}":
+    get:
+      description: "Get list of all purchases."
+      produces:
+      - application/json
+      - text/plain
+      operationId: "getPurchaseHistoryById"
+      responses:
+        200:
+          description: "List of Purchase Records."
+          schema:
+            $ref: '#/definitions/PurchaseRecordList'
+        403:
+          description: "Not allowed to charge this source"
+        404:
+          description: "No Purchase Records found for the user."
+        503:
+          description: "Service Unavailable"
+      security:
+      - auth0_jwt: []
+      parameters:
+      - name: id
+        in: path
+        description: "The customerId of the user"
+        required: true
+        type: string
+  "/support/refund/{id}":
+    put:
+      description: "Full refund of a purchase."
+      produces:
+      - application/json
+      - text/plain
+      operationId: "refundPurchaseById"
+      responses:
+        200:
+          description: "Purchase is refunded."
+          schema:
+            type: object
+        403:
+          description: "Forbidden to refund this Purchase"
+        404:
+          description: "Purchase record not found"
+        502:
+          description: "Failed to refund purchase"
+      security:
+      - auth0_jwt: []
+      parameters:
+      - name: id
+        in: path
+        description: "The customerId of the user"
+        required: true
+        type: string
+      - name: purchaseRecordId
+        in: query
+        description: "The record id of the purchase to be refunded"
+        required: true
+        type: string
+      - name: reason
+        in: query
+        description: "The reason for refund"
+        required: true
+        type: string
+  "/support/notify/{id}":
+    put:
+      description: "Send notification to a customer."
+      produces:
+        - application/json
+        - text/plain
+      operationId: "sendNotificationById"
+      responses:
+        200:
+          description: "Sent notification."
+        404:
+          description: "Subscriber record not found"
+        502:
+          description: "Failed to send notification"
+      security:
+        - auth0_jwt: []
+      parameters:
+        - name: id
+          in: path
+          description: "The customerId of the user"
+          required: true
+          type: string
+        - name: title
+          in: query
+          description: "The title for the notification"
+          required: true
+          type: string
+        - name: message
+          in: query
+          description: "The notification message"
+          required: true
+          type: string
+  "/support/context/{id}":
+    get:
+      description: "Get context which is customer and region details."
+      produces:
+        - application/json
+      operationId: "getContextById"
+      responses:
+        200:
+          description: "Get the customer context."
+          schema:
+            $ref: '#/definitions/Context'
+        404:
+          description: "Customer not found."
+      security:
+        - auth0_jwt: []
+      parameters:
+        - name: id
+          in: path
+          description: "The customerId of the user"
+          required: true
+          type: string
+  "/support/auditLog/{id}":
+    get:
+      description: "Get list of all audit logs."
+      produces:
+        - application/json
+        - text/plain
+      operationId: "queryAuditLogs"
+      responses:
+        200:
+          description: "List of AuditLog records."
+          schema:
+            $ref: '#/definitions/AuditLogList'
+        404:
+          description: "No Records found for the user."
+      security:
+        - auth0_jwt: []
+      parameters:
+        - name: id
+          in: path
+          description: "The customerId of the user"
+          required: true
+          type: string
+  "/support/customer/{id}":
+    delete:
+      description: "Remove the customer from the backend."
+      produces:
+        - application/json
+      operationId: "removeCustomer"
+      responses:
+        200:
+          description: "Removed the customer."
+        404:
+          description: "No customer found for this email."
+      security:
+        - auth0_jwt: []
+      parameters:
+        - name: id
+          in: path
+          description: "The customerId of the customer"
+          required: true
+          type: string
+  "/support/simprofile/{id}":
+    post:
+      description: "Provision SIM Profile for the user."
+      produces:
+        - application/json
+      operationId: "provisionSimProfile"
+      responses:
+        201:
+          description: "Provisioned SIM profile for this user."
+          schema:
+            $ref: '#/definitions/SimProfile'
+        400:
+          description: "Not allowed for this region, or missing parameters."
+        500:
+          description: "Service Unavailable"
+      security:
+        - auth0_jwt: []
+      parameters:
+        - name: id
+          in: path
+          description: "The customerId of the user"
+          required: true
+          type: string
+        - name: regionCode
+          in: query
+          description: "Region code"
+          required: true
+          type: string
+        - name: profileType
+          in: query
+          description: "Profile Type"
+          type: string
+        - name: alias
+          in: query
+          description: "Name for the SIM"
+          type: string
+
+definitions:
+  Context:
+    type: object
+    properties:
+      customer:
+        $ref: '#/definitions/Customer'
+      regions:
+        $ref: '#/definitions/RegionDetailsList'
+  CustomerList:
+    type: array
+    items:
+      $ref: '#/definitions/Customer'
+  Customer:
+    type: object
+    properties:
+      id:
+        type: string
+      nickname:
+        type: string
+      contactEmail:
+        type: string
+        format: email
+      analyticsId:
+        type: string
+      referralId:
+        type: string
+    required:
+      - id
+      - contactEmail
+  RegionDetailsList:
+    type: array
+    items:
+      $ref: '#/definitions/RegionDetails'
+  RegionDetails:
+    type: object
+    properties:
+      region:
+        $ref: '#/definitions/Region'
+      status:
+        description: "Customer Status for this region"
+        type: string
+        enum: [ PENDING, APPROVED ]
+      kycStatusMap:
+        description: "Map of status for each KYC"
+        type: object
+        properties:
+          kycType:
+            $ref: '#/definitions/KycType'
+        additionalProperties:
+          $ref: '#/definitions/KycStatus'
+        example:
+          JUMIO: PENDING
+          MY_INFO: APPROVED
+          NRIC_FIN: REJECTED
+          ADDRESS: PENDING
+      simProfiles:
+        $ref: '#/definitions/SimProfileList'
+  KycType:
+    type: string
+    enum: [ JUMIO, MY_INFO, NRIC_FIN, ADDRESS ]
+  KycStatus:
+    type: string
+    enum: [ PENDING, REJECTED, APPROVED ]
+  Region:
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+  SimProfileList:
+    type: array
+    items:
+      $ref: '#/definitions/SimProfile'
+  SimProfile:
+    type: object
+    properties:
+      iccId:
+        description: "ID of Sim Profile"
+        type: string
+      eSimActivationCode:
+        description: "eSIM activation code"
+        type: string
+      status:
+        description: "The status of the SIM profile, e.g. INSTALLED"
+        type: string
+        enum: [ NOT_READY, AVAILABLE_FOR_DOWNLOAD, DOWNLOADED, INSTALLED, ENABLED ]
+      alias:
+        description: "Human readable optional alias for this subscription"
+        type: string
+    required:
+      - iccId
+      - activationCode
+      - status
+  SubscriptionList:
+    type: array
+    items:
+      $ref: '#/definitions/Subscription'
+  Subscription:
+    type: object
+    properties:
+      msisdn:
+        description: "Mobile number for this subscription"
+        type: string
+      alias:
+        description: "Human readable optional alias for this subscription"
+        type: string
+  BundleList:
+    type: array
+    items:
+      $ref: '#/definitions/Bundle'
+  Bundle:
+    type: object
+    properties:
+      id:
+        description: "Bundle ID"
+        type: string
+      balance:
+        description: "Balance units in this bundle"
+        type: integer
+        format: int64
+  PurchaseRecordList:
+    type: array
+    items:
+      $ref: '#/definitions/PurchaseRecord'
+  PurchaseRecord:
+    type: object
+    properties:
+      id:
+        description: "Purchase Record ID"
+        type: string
+      msisdn:
+        description: "Deprecated: The MSISDN for which the purchase was made."
+        type: string
+      timestamp:
+        description: "The time stamp of the purchase"
+        type: integer
+        format: int64
+      product:
+        $ref: '#/definitions/Product'
+    required:
+    - timestamp
+    - product
+    - end
+  AuditLogList:
+    type: array
+    items:
+      $ref: '#/definitions/AuditLog'
+  AuditLog:
+    type: object
+    properties:
+      timestamp:
+        description: "The time stamp of the log"
+        type: integer
+        format: int64
+      severity:
+        description: "Severity level for the log (INFO, WARN, ERROR)."
+        type: string
+      message:
+        description: "The log message."
+        type: string
+    required:
+      - timestamp
+      - severity
+      - message
+  Product:
+    type: object
+    properties:
+      sku:
+        description: "A unique Id representing a SKU"
+        type: string
+      price:
+        $ref: '#/definitions/Price'
+      properties:
+        type: object
+      presentation:
+        type: object
+    required:
+    - sku
+    - price
+  Price:
+    type: object
+    properties:
+      amount:
+        description: "A positive integer in the smallest currency unit"
+        type: integer
+        minimum: 0
+      currency:
+        description: "ISO 4217 currency code (three letter alphabetic code)"
+        type: string
+    required:
+    - amount
+    - currency
+  ScanInformationList:
+    type: array
+    items:
+      $ref: '#/definitions/ScanInformation'
+  ScanInformation:
+    type: object
+    properties:
+      scanId:
+        description: "New scan Id for eKYC"
+        type: string
+      countryCode:
+        description: "The 3 letter country code (or global) for the scan "
+        type: string
+      status:
+        description: "The status of the scan"
+        type: string
+      scanResult:
+        description: "The result from the vendor"
+        type: object
+    required:
+      - scanId
+      - status
+securityDefinitions:
+  auth0_jwt:
+    authorizationUrl: "https://redotter-admin-dev.eu.auth0.com/authorize"
+    flow: "implicit"
+    type: "oauth2"
+    x-google-issuer: "https://redotter-admin-dev.eu.auth0.com/"
+    x-google-jwks_uri: "https://redotter-admin-dev.eu.auth0.com/.well-known/jwks.json"
+    x-google-audiences: "http://google_api"

@@ -1,0 +1,33 @@
+@startuml
+
+[prime]
+note left of prime
+    Aggregates modules
+    into a single
+    deployable component.
+end note
+
+interface "prime-modules" as primeModules
+[prime] --> primeModules : <<implements>>
+
+interface "ocs-grpc-api" as ocsApi
+note left of ocsApi: gRPC interface for OCS
+
+[ocs]
+note right of ocs
+    Online Charging System.
+    Implements ocs-grpc-api
+    for consumption.
+end note
+
+primeModules ..> ocsApi : <<extends>>
+note left of primeApi
+    Code needed by modules
+    for them to be
+    aggregated into prime.
+end note
+
+[ocs] ..> primeModules : <<uses>>
+[ocs] ..> ocsApi : <<implements>>
+
+@enduml

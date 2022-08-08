@@ -1,0 +1,28 @@
+@startuml
+
+[prime]
+note left of prime
+    Aggregates modules
+    into a single
+    deployable component.
+end note
+
+interface "prime-modules" as primeModules
+[prime] --> primeModules
+
+note left of primeModules
+    Code needed by modules
+    for themto be aggregated
+    into prime.
+end note
+
+note right of primeModules
+    Interfaces which are
+    implemented by the
+    modules.
+end note
+
+[module(s)] ..> primeModules : <<implements>>
+[module(s)] ..> primeModules : <<consumes>>
+
+@enduml

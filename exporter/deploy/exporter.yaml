@@ -1,0 +1,24 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: exporter
+  labels:
+    app: exporter
+    tier: backend
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: exporter
+        tier: backend
+    spec:
+      containers:
+      - name: exporter
+        image: eu.gcr.io/_GCP_PROJECT_ID/exporter:EXPORTER_VERSION
+        imagePullPolicy: Always
+        env:
+        - name: GCP_PROJECT_ID
+          value: _GCP_PROJECT_ID
+        ports:
+        - containerPort: 8080

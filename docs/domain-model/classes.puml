@@ -1,0 +1,103 @@
+@startuml
+
+class Region {
+  + regionCode: String
+  + regionName: String
+}
+
+class CustomerRegion {
+  + status: CustomerRegionStatus
+  + kycStatusMap: [KycType, KycStatus]
+}
+
+class Identity {
+  + id: String
+  + type: String
+}
+
+class Identifies {
+  + provider: String
+}
+
+class Customer {
+  + customerId: UUID
+  + nickname: String
+  + contactEmail: Email
+  + analyticsId: UUID
+  + referralId: UUID
+--
+  getAvailableProducts():[ProductID]
+}
+
+class Bundle {
+  + balance: Long
+}
+
+class SimProfile {
+  + ICCID: String
+  + status: String
+  + alias: String
+}
+
+class Subscription {
+ + MSISDN: String
+}
+
+class Segment
+note left: Visible to Admin Only
+
+class Offer
+note left: Visible to Admin Only
+
+class ProductClass {
+  + id: UUID
+  + path: String
+}
+
+class Price {
+  + currency: String
+  + amount: Int
+}
+
+class Product {
+  + SKU: UUID
+  + price: Price
+}
+
+class PurchaseRecord {
+  + id: UUID
+  + timestamp: Long
+}
+
+class Plan {
+  + id: String
+  + stripePlanId: String?
+  + stripeProductId: String?
+  + interval: String
+  + intervalCount: Long
+}
+
+Identity "1" -- "1" Identifies
+Customer "1" -- "1" Identifies
+Customer "1" -- "*" Customer
+
+Customer "1" -- "*" CustomerRegion
+Region "1" -- "*" CustomerRegion
+Customer "1" -- "*" Bundle
+SimProfile "*" -- "1" Region
+SimProfile "1" -- "*" Subscription
+Subscription "*" -- "1" Customer
+Subscription "*" -- "*" Bundle
+
+Customer "*" -- "*" Segment
+Segment "*" -- "*" Offer
+Offer "*" -- "*" Product
+Product "1" -- "1" Price
+Product "*" -- "1" ProductClass
+
+PurchaseRecord "*" -- "1" Product
+Customer "1" -- "*" PurchaseRecord
+PurchaseRecord "1"  -- "1" Payment
+Customer "1" -- "*" Plan
+
+@enduml

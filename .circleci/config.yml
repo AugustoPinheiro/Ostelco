@@ -1,0 +1,455 @@
+version: 2.1
+jobs:
+  ### JOBS FOR on-feature-branch-commit PIPELINE
+  build-test-repo:
+    # machine is needed to run Gradle build and to run docker compose tests
+    machine:
+      image: ubuntu-1604:201903-01
+    resource_class: large
+    environment:
+      JAVA_HOME: /usr/lib/jvm/zulu13.28.11-ca-jdk13.0.1-linux_x64
+
+    steps:
+      - checkout
+      - run:
+          name: upgrading Java to open-jdk-13
+          command: |
+            # sudo apt update; sudo apt install -y wget
+            sudo wget https://cdn.azul.com/zulu/bin/zulu13.28.11-ca-jdk13.0.1-linux_x64.tar.gz -O /tmp/zulu13.28.11-ca-jdk13.0.1-linux_x64.tar.gz
+            sudo tar -zxf /tmp/zulu13.28.11-ca-jdk13.0.1-linux_x64.tar.gz -C /usr/lib/jvm
+      - run:
+          # checking for merge conflicts and merging locally if none exist
+          name: merging into develop locally
+          command: |
+            git config --global user.email "${GIT_USER_EMAIL}" 
+            git config --global user.name "${GIT_USER_NAME}"
+            git checkout ${CIRCLE_BRANCH}
+            git checkout develop 
+            git merge ${CIRCLE_BRANCH} -m "Merging ${CIRCLE_BRANCH} into develop."
+      # Show the javac version installed.
+      - run:
+          name: javac -version
+          command: |
+            export PATH=/usr/lib/jvm/zulu13.28.11-ca-jdk13.0.1-linux_x64/bin:$PATH
+            javac -version
+      - run:
+          name: Pulling Gradle cache
+          command: |
+            sudo rm -f /etc/boto.cfg # needed to fix gsutil issue in circleci https://github.com/travis-ci/travis-ci/issues/7940
+            export CLOUDSDK_CORE_PROJECT=${DEV_PROJECT}
+            echo $GOOGLE_GCR_CREDENTIALS > ${HOME}/gcloud-service-key.json
+            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+            gsutil cp gs://pi-ostelco-core-gradle-cache/caches.tar.gz ~/caches.tar.gz
+            mkdir -p ~/.gradle/caches/
+            tar -xzvf ~/caches.tar.gz -C ~/.gradle/caches/ .
+      # Copying prime-service-account secret file to locations where it is needed for docker compose tests.
+      - run:
+          name: Distribute prime-service-account.json secret from env var.
+          command: |
+            scripts/distribute-prime-service-account-secrets.sh
+      # run gradle build. Skipping neo4j tests as they fail
+      - run:
+          name: Build entire repo
+          command: ./gradlew --build-cache build -info -s -x :neo4j-store:test
+      - run:
+          name: Push Gradle cache
+          command: |
+            rm -f ~/.gradle/caches/modules-2/modules-2.lock
+            rm -fr ~/.gradle/caches/*/plugin-resolution/
+            tar -czvf  ~/caches.tar.gz  -C ~/.gradle/caches .
+            gsutil cp  ~/caches.tar.gz gs://pi-ostelco-core-gradle-cache
+      # persisting the entire project with its generated artifacts. They are needed in the build-image job below.
+      # the default working directory in circleci is ~/project/
+      - persist_to_workspace:
+          root: ~/project/
+          paths:
+            - .
+
+      # generating selfsigned certs. Needed for docker compose tests
+#      - run:
+#          name: Generate self signed certs
+#          command: |
+#            scripts/generate-selfsigned-ssl-certs.sh   ocs.dev.ostelco.org
+#            cp certs/ocs.dev.ostelco.org/nginx.crt ocsgw/cert/ocs.crt
+      - run:
+          name: Acceptance Tests
+          command: docker-compose up --build --abort-on-container-exit
+
+      - run:
+          name: notify slack on failure
+          when: on_fail
+          command: .circleci/notify-slack.sh on-feature-branch-commit false
+
+  code-coverage:
+    environment:
+      CODACY_DOWNLOAD_URL: https://github.com/codacy/codacy-coverage-reporter/releases/download
+      CODACY_VERSION: 6.0.6
+      CODACY_JAR_FILE: codacy-coverage-reporter-assembly-latest.jar
+      CODACY_MODULE: com.codacy.CodacyCoverageReporter
+
+    docker:
+      - image: circleci/openjdk:13.0.1-jdk-buster
+
+    steps:
+      - run:
+          name: Download codacy
+          command: |
+            wget -O ~/${CODACY_JAR_FILE} \
+              ${CODACY_DOWNLOAD_URL}/${CODACY_VERSION}/codacy-coverage-reporter-${CODACY_VERSION}-assembly.jar
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: ~/project
+
+      # the commands below need "CODACY_PROJECT_TOKEN" to be present as (circleci) ENV variable.            
+      - run:
+          name: Generate Codacy code-coverage report
+          command: |
+            scripts/generate-codacy-coverage.sh
+
+      - run:
+          name: notify slack on failure
+          when: on_fail
+          command: .circleci/notify-slack.sh on-feature-branch-commit false
+
+  ### JOBS FOR  on-PR-merge-to-dev PIPELINE 
+  build-code:
+    machine:
+      image: ubuntu-1604:201903-01
+    resource_class: large
+    environment:
+      JAVA_HOME: /usr/lib/jvm/zulu13.28.11-ca-jdk13.0.1-linux_x64
+
+    steps:
+      - checkout
+      - run:
+          name: upgrading Java to open-jdk-13
+          command: |
+            # sudo apt update; sudo apt install -y wget
+
+            sudo wget https://cdn.azul.com/zulu/bin/zulu13.28.11-ca-jdk13.0.1-linux_x64.tar.gz -O /tmp/zulu13.28.11-ca-jdk13.0.1-linux_x64.tar.gz
+            sudo tar -zxf /tmp/zulu13.28.11-ca-jdk13.0.1-linux_x64.tar.gz -C /usr/lib/jvm
+      - run:
+          name: Pulling Gradle cache
+          command: |
+            sudo rm -f /etc/boto.cfg # needed to fix gsutil issue in circleci https://github.com/travis-ci/travis-ci/issues/7940
+            export CLOUDSDK_CORE_PROJECT=${DEV_PROJECT}
+            echo $GOOGLE_GCR_CREDENTIALS > ${HOME}/gcloud-service-key.json
+            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+            gsutil cp gs://pi-ostelco-core-gradle-cache/caches.tar.gz ~/caches.tar.gz
+            mkdir -p ~/.gradle/caches/
+            tar -xzvf ~/caches.tar.gz -C ~/.gradle/caches/ .
+      # Show the javac version installed.
+      - run:
+          name: javac -version
+          command: |
+            export PATH=/usr/lib/jvm/zulu13.28.11-ca-jdk13.0.1-linux_x64/bin:$PATH
+            javac -version
+      - run:
+          name: Gradle Build Prime and ScanInfo Shredder
+          command:  ./gradlew --build-cache prime:build scaninfo-shredder:build -info -s -x test -x integration
+      # - run:
+      #     name: Gradle Build OCSGW 
+      #     command: |
+      #       ./gradlew ocsgw:build  -s
+      - run:
+          name: Push Gradle cache
+          command: |
+            rm -f ~/.gradle/caches/modules-2/modules-2.lock
+            rm -fr ~/.gradle/caches/*/plugin-resolution/
+            tar -czvf  ~/caches.tar.gz  -C ~/.gradle/caches .
+            gsutil cp  ~/caches.tar.gz gs://pi-ostelco-core-gradle-cache
+      - run: 
+          name: Persist Prime version
+          command: ./gradlew -q prime:version > prime_version
+
+      - run:
+          name: Persist scaninfo-shredder version
+          command: ./gradlew -q scaninfo-shredder:version > scaninfo-shredder_version
+
+      - persist_to_workspace:
+          root: ~/project/
+          paths:
+            - .
+
+      - run:
+          name: notify slack on failure
+          when: on_fail
+          command: .circleci/notify-slack.sh on-PR-merge-to-dev false
+
+  build-prime-image:
+    docker:
+      - image: google/cloud-sdk:latest
+
+    working_directory: ~/project
+
+    steps:
+      - run:
+          name: authenticate with gcloud
+          command: |
+            # $GOOGLE_GCR_CREDENTIALS env variable contains Google credentials 
+            # with permission to write to Google container registry
+            echo $GOOGLE_GCR_CREDENTIALS > ${HOME}/gcloud-service-key.json
+            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: ~/project
+
+      # starts a remote docker environment to run docker commands
+      - setup_remote_docker:
+          docker_layer_caching: true
+
+      - run:
+          name: build Prime docker image and push image to GCR
+          command: |
+            gcloud auth configure-docker --quiet
+            PRIME_VERSION=$(cat prime_version)
+            TAG=$PRIME_VERSION-${CIRCLE_SHA1:0:9}
+            cd prime
+            docker build -t eu.gcr.io/pi-ostelco-dev/prime:$TAG .
+            docker push eu.gcr.io/pi-ostelco-dev/prime:$TAG  
+
+      - run:
+          name: notify slack on failure
+          when: on_fail
+          command: .circleci/notify-slack.sh on-PR-merge-to-dev false
+
+  build-scaninfo-shredder-image:
+    docker:
+      - image: google/cloud-sdk:latest
+
+    working_directory: ~/project
+
+    steps:
+      - run:
+          name: authenticate with gcloud
+          command: |
+            # $GOOGLE_GCR_CREDENTIALS env variable contains Google credentials
+            # with permission to write to Google container registry
+            echo $GOOGLE_GCR_CREDENTIALS > ${HOME}/gcloud-service-key.json
+            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: ~/project
+
+      # starts a remote docker environment to run docker commands
+      - setup_remote_docker:
+          docker_layer_caching: true
+
+      - run:
+          name: build scaninfo shredder docker image and push image to GCR
+          command: |
+            gcloud auth configure-docker --quiet
+            SCANINFO_SHREDDER_VERSION=$(cat scaninfo-shredder_version)
+            TAG=$SCANINFO_SHREDDER_VERSION-${CIRCLE_SHA1:0:9}
+            cd scaninfo-shredder
+            docker build -t eu.gcr.io/pi-ostelco-dev/scaninfo-shredder:$TAG .
+            docker push eu.gcr.io/pi-ostelco-dev/scaninfo-shredder:$TAG
+
+  update-dev-endpoints:
+    docker:
+      - image: eu.gcr.io/pi-ostelco-prod/python-gcloud
+    steps:
+      - checkout
+      - run:
+          name: update endpoints spec
+          command: |
+            export CLOUDSDK_CORE_PROJECT=${DEV_PROJECT}
+            echo $GOOGLE_DEV_ENDPOINTS_CREDENTIALS > ${HOME}/gcloud-service-key.json
+            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+
+            sed -i  's/GCP_PROJECT_ID/'${DEV_PROJECT}'/g' prime/infra/dev/ocs-api.yaml
+
+            python -m grpc_tools.protoc --include_imports --include_source_info --proto_path=ocs-grpc-api/src/main/proto --descriptor_set_out=ocs_descriptor.pb ocs.proto
+            gcloud endpoints services deploy ocs_descriptor.pb prime/infra/dev/ocs-api.yaml
+            gcloud endpoints services deploy prime/infra/dev/prime-customer-api.yaml
+            gcloud endpoints services deploy prime/infra/dev/prime-webhooks.yaml
+            gcloud endpoints services deploy prime/infra/dev/prime-houston-api.yaml
+
+      - run:
+          name: notify slack on failure
+          when: on_fail
+          command: .circleci/notify-slack.sh on-PR-merge-to-dev false
+
+  deploy-to-dev:
+
+    working_directory: ~/project
+
+    docker:
+      - image: praqma/gcloud-kubectl-helm:v2.11.0
+        environment:
+          PROJECT: pi-ostelco-dev
+          CLUSTER: pi-dev
+          ZONE: europe-west1
+          SERVICE_ACCOUNT: terraform-dev-cluster@pi-ostelco-dev.iam.gserviceaccount.com
+    steps:
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: ~/project
+
+      - run:
+          name: deploy prime to the dev cluster
+          command: |
+            PRIME_VERSION=$(cat prime_version)
+            PRIME_TAG=$PRIME_VERSION-${CIRCLE_SHA1:0:9}
+            SCANINFO_SHREDDER_VERSION=$(cat scaninfo-shredder_version)
+            SCANINFO_SHREDDER_TAG=$SCANINFO_SHREDDER_VERSION-${CIRCLE_SHA1:0:9}
+            export GOOGLE_CREDENTIALS=${PI_DEV_CLUSTER_CREDENTIALS}
+            /authenticate.bash
+            helm repo add ostelco https://storage.googleapis.com/pi-ostelco-helm-charts-repo/
+            helm repo update
+            helm upgrade prime ostelco/prime --version 1.0.1 --install \
+             --namespace dev \
+             -f .circleci/prime-dev-values.yaml \
+             --set prime.tag=$PRIME_TAG \
+             --set cronjobs.shredder.tag=$SCANINFO_SHREDDER_TAG
+
+      - run:
+          name: notify slack on failure
+          when: on_fail
+          command: .circleci/notify-slack.sh on-PR-merge-to-dev false
+
+  ### JOBS FOR deploying to prod
+  update-prod-endpoints:
+    docker:
+      - image: eu.gcr.io/pi-ostelco-prod/python-gcloud
+    steps:
+      - checkout
+      - run:
+          name: update endpoints spec
+          command: |
+            export CLOUDSDK_CORE_PROJECT=${PROD_PROJECT}
+            echo $GOOGLE_PROD_ENDPOINTS_CREDENTIALS > ${HOME}/gcloud-service-key.json
+            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+
+            sed -i 's/GCP_PROJECT_ID/'${PROD_PROJECT}'/g' prime/infra/prod/ocs-api.yaml
+
+            python -m grpc_tools.protoc --include_imports --include_source_info --proto_path=ocs-grpc-api/src/main/proto --descriptor_set_out=ocs_descriptor.pb ocs.proto
+            gcloud endpoints services deploy ocs_descriptor.pb prime/infra/prod/ocs-api.yaml
+            gcloud endpoints services deploy prime/infra/prod/prime-customer-api.yaml
+            gcloud endpoints services deploy prime/infra/prod/prime-webhooks.yaml
+            gcloud endpoints services deploy prime/infra/prod/prime-houston-api.yaml
+
+      - run:
+          name: notify slack on failure
+          when: on_fail
+          command: .circleci/notify-slack.sh on-PR-merge-to-master false
+
+  deploy-canary:
+    docker:
+      - image: praqma/gcloud-kubectl-helm:v2.11.0
+        environment:
+          PROJECT: pi-ostelco-prod
+          CLUSTER: pi-prod
+          ZONE: europe-west1
+          SERVICE_ACCOUNT: terraform-manage-cluster-from@pi-ostelco-prod.iam.gserviceaccount.com
+
+    steps:
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: ~/project
+      - run:
+          name: deploy canary prime to the prod cluster
+          command: |
+            PRIME_VERSION=$(cat prime_version)
+            TAG=$PRIME_VERSION-${CIRCLE_SHA1:0:9}
+            export GOOGLE_CREDENTIALS=${PI_PROD_CLUSTER_CREDENTIALS}
+            /authenticate.bash
+            helm repo add ostelco https://storage.googleapis.com/pi-ostelco-helm-charts-repo/
+            helm repo update
+            helm upgrade --install prime-canary ostelco/prime --version 1.0.1 \
+             --namespace prod \
+             -f .circleci/prime-canary-values.yaml \
+             --set prime.tag=$TAG
+
+#             --set-string canary.tag=${CIRCLE_SHA1:0:9} \
+#             --set canary.weight=0
+
+      - run:
+          name: notify slack on failure
+          when: on_fail
+          command: .circleci/notify-slack.sh on-PR-merge-to-master false
+
+  deploy-stable-prod:
+    docker:
+      - image: praqma/gcloud-kubectl-helm:v2.11.0
+        environment:
+          PROJECT: pi-ostelco-prod
+          CLUSTER: pi-prod
+          ZONE: europe-west1
+          SERVICE_ACCOUNT: terraform-manage-cluster-from@pi-ostelco-prod.iam.gserviceaccount.com
+
+    steps:
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: ~/project
+      - run:
+          name: deploy stable prod prime to the prod cluster
+          command: |
+            PRIME_VERSION=$(cat prime_version)
+            PRIME_TAG=$PRIME_VERSION-${CIRCLE_SHA1:0:9}
+            SCANINFO_SHREDDER_VERSION=$(cat scaninfo-shredder_version)
+            SCANINFO_SHREDDER_TAG=$SCANINFO_SHREDDER_VERSION-${CIRCLE_SHA1:0:9}
+            export GOOGLE_CREDENTIALS=${PI_PROD_CLUSTER_CREDENTIALS}
+            /authenticate.bash
+            helm repo add ostelco https://storage.googleapis.com/pi-ostelco-helm-charts-repo/
+            helm repo update
+            helm upgrade prime ostelco/prime --version 1.0.1 --install \
+             --namespace prod \
+             -f .circleci/prime-prod-values.yaml \
+             --set prime.tag=$PRIME_TAG \
+             --set cronjobs.shredder.tag=$SCANINFO_SHREDDER_TAG
+
+      - run:
+          name: notify slack on failure
+          when: on_fail
+          command: .circleci/notify-slack.sh on-PR-merge-to-master false      
+workflows:
+  version: 2
+  on-feature-branch-commit:
+    jobs:
+      - build-test-repo:
+          filters:
+            branches:
+              only:  /feature/.*/
+      - code-coverage:
+          requires:
+            - build-test-repo
+
+  on-PR-merge-to-dev:
+    jobs:
+      - build-code:
+          filters:
+            branches:
+              only:
+                - develop
+      - build-prime-image:
+          requires:
+            - build-code
+      - build-scaninfo-shredder-image:
+          requires:
+            - build-code
+      - update-dev-endpoints:
+          requires:
+            - build-code
+      - deploy-to-dev:
+          requires:
+            - build-prime-image
+            - build-scaninfo-shredder-image
+            - update-dev-endpoints
+      - approve-prod-canary-deploy:
+          type: approval
+          requires:
+            - deploy-to-dev
+      - update-prod-endpoints:
+          requires:
+            - approve-prod-canary-deploy
+      - deploy-canary:
+          requires:
+            - update-prod-endpoints
+      - approve-prod-stable-deploy:
+          type: approval
+          requires:
+            - deploy-canary 
+      - deploy-stable-prod:
+          requires:
+            - approve-prod-stable-deploy

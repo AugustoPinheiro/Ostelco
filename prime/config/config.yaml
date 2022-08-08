@@ -1,0 +1,229 @@
+##
+## NOTE: This is the prime config file for _PRODUCTION_ like settings.
+##       Prime's config file for acceptance tests are in test.yaml
+##
+
+
+
+modules:
+  - type: jersey
+    config:
+      authenticationCachePolicy: maximumSize=10000, expireAfterAccess=10m
+      jerseyClient:
+        timeout: 2s
+  - type: tracing
+  - type: slack
+    config:
+      notifications:
+        channel: ${SLACK_CHANNEL}
+        webHookUri: ${SLACK_WEBHOOK_URI}
+        environment: ${SLACK_ENV}
+        deployment: ${SLACK_DEPLOYMENT}
+        httpClient:
+          timeout: 3s
+          connectionRequestTimeout: 1s
+  - type: Imei-lookup
+    config:
+      csvFile: /config-data/imeiDb.csv
+  - type: doc-data-store
+  - type: apple-id-auth
+    config:
+      teamId: ${APPLE_TEAM_ID}
+      keyId: ${APPLE_KEY_ID}
+      clientId: ${APPLE_CLIENT_ID}
+      privateKey: ${APPLE_PRIVATE_KEY}
+      firebaseServiceAccount: /secret/prime-service-account.json
+  - type: email
+    config:
+      mandrillApiKey: ${MANDRILL_API_KEY}
+      httpClient:
+        timeout: 3s
+        connectionRequestTimeout: 1s
+  - type: kyc
+    config:
+      myInfoV3:
+        myInfoApiUri: ${MY_INFO_V3_API_URI}
+        myInfoApiClientId: ${MY_INFO_API_CLIENT_ID}
+        myInfoApiClientSecret: ${MY_INFO_API_CLIENT_SECRET}
+        myInfoRedirectUri: ${MY_INFO_REDIRECT_URI}
+        myInfoServerPublicKey: ${MY_INFO_SERVER_PUBLIC_KEY}
+        myInfoClientPrivateKey: ${MY_INFO_CLIENT_PRIVATE_KEY}
+  - type: neo4j
+    config:
+      host: ${NEO4J_HOST}
+      protocol: bolt+routing
+      onNewCustomerAction:
+        serviceInterface: org.ostelco.prime.storage.graph.OnNewCustomerAction
+        textReader:
+          type: file
+          filename: /config-data/OnNewCustomerAction.kts
+      allowedRegionsService:
+        serviceInterface: org.ostelco.prime.storage.graph.AllowedRegionsService
+        textReader:
+          type: file
+          filename: /config-data/AllowedRegionsService.kts
+      onKycApprovedAction:
+        serviceInterface: org.ostelco.prime.storage.graph.OnKycApprovedAction
+        textReader:
+          type: file
+          filename: /config-data/OnKycApprovedAction.kts
+      onRegionApprovedAction:
+        serviceInterface: org.ostelco.prime.storage.graph.OnRegionApprovedAction
+        textReader:
+          type: file
+          filename: /config-data/OnRegionApprovedAction.kts
+      hssNameLookupService:
+        serviceInterface: org.ostelco.prime.storage.graph.HssNameLookupService
+        textReader:
+          type: file
+          filename: /config-data/HssNameLookupService.kts
+  - type: analytics
+    config:
+      projectId: ${GCP_PROJECT_ID}
+      dataTrafficTopicId: data-traffic
+      purchaseInfoTopicId: purchase-info
+      simProvisioningTopicId: sim-provisioning
+      subscriptionStatusUpdateTopicId: subscription-status-update
+      refundsTopicId: analytics-refunds
+  - type: ocs
+    config:
+      lowBalanceThreshold: 100000000
+      pubSubChannel:
+        projectId: ${GCP_PROJECT_ID}
+        activateTopicId: ${ACTIVATE_TOPIC_ID}
+        ccrSubscriptionId: ${CCR_SUBSCRIPTION_ID}
+      consumptionPolicyService:
+        serviceInterface: org.ostelco.prime.ocs.core.ConsumptionPolicy
+        textReader:
+          type: file
+          filename: /config-data/ConsumptionPolicyService.kts
+  - type: api
+  - type: stripe-payment-processor
+    config:
+      projectId: ${GCP_PROJECT_ID}
+      stripeEventTopicId: ${STRIPE_EVENT_TOPIC}
+      stripeEventStoreSubscriptionId: ${STRIPE_EVENT_STORE_SUBSCRIPTION}
+      stripeEventReportSubscriptionId: ${STRIPE_EVENT_REPORT_SUBSCRIPTION}
+      stripeEventRecurringPaymentSubscriptionId: ${STRIPE_EVENT_RECURRING_PAYMENT_SUBSCRIPTION}
+  - type: firebase-app-notifier
+    config:
+      configFile: /secret/prime-service-account.json
+  - type: support
+  - type: admin
+  - type: graphql
+  - type: secure-archive
+    config:
+      storageBucket: ${SCANINFO_STORAGE_BUCKET}
+      masterKeyUri: ${SCANINFO_MASTERKEY_URI}
+      keySetFilePathPrefix: /scaninfo-keysets/encrypt_key
+      regions: [ "sg" ]
+  - type: scaninfo-store
+  - type: sim-manager
+    config:
+      openApi:
+        name: SIM admin
+        description: SIM administration service
+        termsOfService: http://example.org
+        contactEmail: rmz@telenordigital.com
+        resourcePackage: org.ostelco
+      hlrs:
+        - name: Loltel
+          # this is a "SWT" style endpoint, so we should configure parameters
+          # accordingly.
+          hlrType: SWT
+          # This name, starting with a lowercase "l" is used in the
+          # api itself, and must match whatever the API expects
+          # the bss to be identified as.
+          hssNameUsedInAPI: loltel
+          endpoint: ${WG2_ENDPOINT}
+          userId: ${WG2_USER}
+          apiKey: ${WG2_API_KEY}
+        - name: M1
+          hlrType: DUMMY
+        - name: Digi
+          hlrType: DUMMY
+      profileVendors:
+        - name: Idemia
+          es2plusEndpoint: ${ES2PLUS_ENDPOINT}
+          es9plusEndpoint: ${ES9PLUS_ENDPOINT}
+          requesterIdentifier: ${FUNCTION_REQUESTER_IDENTIFIER}
+      # Note, list must end with a wildcard match
+      phoneTypes:
+        - regex: "M1.android"
+          profile: OYA_M1_BF76
+        - regex: "M1.*"
+          profile: OYA_M1_STANDARD_ACB
+        - regex: "Digi.*"
+          profile: OYA_DIGI_STANDARD_ACB
+        - regex: "Loltel.*"
+          profile: OYA_LOLTEL_STD_ACB
+      database:
+        driverClass: org.postgresql.Driver
+        user: ${DB_USER}
+        password: ${DB_PASSWORD}
+        url: ${DB_URL}
+        # the SQL query to run when validating a connection's liveness
+        # Must return at least one row for health to be considered healthy
+        validationQuery: "/* Prime Health Check */ SELECT 1"
+      httpClient:
+        timeout: 10000ms
+        connectionTimeout: 10000ms
+        tls:
+          # Default is 500 milliseconds, we need more when debugging.
+          # protocol: TLSv1.2
+          keyStoreType: JKS
+          keyStorePath: /certs/idemia-client-cert.jks
+          keyStorePassword: foobar
+          verifyHostname: false
+          trustSelfSignedCertificates: true
+
+server:
+  applicationConnectors:
+    - type: h2c
+      port: 8080
+      maxConcurrentStreams: 1024
+      initialStreamRecvWindow: 65535
+  requestLog:
+    appenders:
+      - type: console
+        layout:
+          type: access-json
+          # Overriding default array value with additional fields - "requestContent", "responseContent".
+          # This also needs code change - see TeeFilter
+          includes: [timestamp, remoteAddress, remoteUser, protocol, method, requestUri, statusCode, requestTime, contentLength, userAgent, requestContent, responseContent]
+        filterFactories:
+          # Do not log access logs for these URIs.
+          - type: URI
+            uriSet: [ prometheus-metrics, ping ]
+
+logging:
+  level: INFO
+  loggers:
+    org.ostelco: DEBUG
+    org.dhatim.dropwizard.prometheus.DropwizardMetricsExporter: ERROR
+  appenders:
+    - type: slack
+    - type: console
+      layout:
+        type: json
+        customFieldNames:
+          # GCP Stack-driver logging needs "level" to be named as "severity"
+          level: severity
+      filterFactories:
+        # Hiding duplicate WARN and ERROR logs since they are logged again with separate console appender
+        - type: level-filter-factory
+          level: WARN
+          onMatch: DENY
+        - type: level-filter-factory
+          level: ERROR
+          onMatch: DENY
+    # This is to send logs with WARN and above level to GCP Error reporting.
+    - type: console
+      # If this threshold is changed, also change the levels in filterFactories above.
+      threshold: WARN
+      layout:
+        type: json
+        additionalFields:
+          "@type": "type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent"
+        customFieldNames:
+          level: severity

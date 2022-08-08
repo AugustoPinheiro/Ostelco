@@ -1,0 +1,29 @@
+createOffer:
+  id: test-offer
+
+# list of existing products
+# listing products to be created in this yaml is OPTIONAL
+  existingProducts:
+    - 1GB_249NOK
+
+# list of existing segments
+# listing segments to be created in this yaml is OPTIONAL
+  existingSegments:
+    - test-segment
+
+# These products will be created and linked to offer - 'test-offer'
+  createProducts:
+    - sku: 10GB_449NOK
+      price:
+        amount: 449
+        currency: NOK
+      properties:
+        noOfBytes: 10_000_000_000
+      presentation:
+        isDefault: true
+        offerLabel: Default Offer
+        priceLabel: 449 NOK
+
+# These segments will be created and linked to offer - 'test-offer'
+  createSegments:
+    - id: test-new-segment

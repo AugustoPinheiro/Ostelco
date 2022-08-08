@@ -1,0 +1,113 @@
+schema {
+  query: QueryType
+}
+
+type QueryType {
+  context: Context!
+}
+
+type Context {
+  customer: Customer
+  bundles: [Bundle!]!
+  regions(regionCode: String): [RegionDetails!]!
+  products: [Product!]!
+  purchases: [Purchase!]!
+}
+
+type Customer {
+  id: String!
+  contactEmail: String!
+  nickname: String!
+  referralId: String!
+  analyticsId: String!
+}
+
+type Bundle {
+  id: String!
+  balance: Long!
+}
+
+type RegionDetails {
+  region: Region!
+  status: CustomerRegionStatus!
+  kycStatusMap: KycStatusMap!
+  simProfiles: [SimProfile!]
+}
+
+type Region {
+  id: String!
+  name: String!
+}
+
+enum CustomerRegionStatus {
+  PENDING
+  APPROVED
+  AVAILABLE
+}
+
+type KycStatusMap {
+  JUMIO: KycStatus
+  MY_INFO: KycStatus
+  NRIC_FIN: KycStatus
+  ADDRESS: KycStatus
+}
+
+enum KycStatus {
+  PENDING
+  REJECTED
+  APPROVED
+}
+
+type SimProfile {
+  iccId: String!
+  eSimActivationCode: String!
+  status: SimProfileStatus!
+  alias: String!
+  requestedOn: String
+  downloadedOn: String
+  installedOn: String
+  installedReportedByAppOn: String
+  deletedOn: String
+}
+
+enum SimProfileStatus {
+  NOT_READY
+  AVAILABLE_FOR_DOWNLOAD
+  DOWNLOADED
+  INSTALLED
+  ENABLED
+}
+
+type Product {
+  sku: String!
+  price: Price!
+  properties: Properties!
+  presentation: Presentation!
+}
+
+type Properties {
+  productClass: String
+}
+
+# TODO Vihang: How do we make this generic?
+type Presentation {
+  subTotal: String
+  payeeLabel: String
+  priceLabel: String!
+  taxLabel: String
+  tax: String
+  subTotalLabel: String
+  productLabel: String!
+  label: String
+}
+
+type Price {
+  amount: Int!
+  currency: String!
+}
+
+type Purchase {
+  id: String!
+  product: Product!
+  timestamp: Long!
+}

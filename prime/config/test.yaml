@@ -1,0 +1,156 @@
+##
+## This config is used as config.yaml when prime is running
+## using docker-compose for Acceptance Testing
+##
+
+modules:
+  - type: jersey
+    config:
+      authenticationCachePolicy: maximumSize=10000, expireAfterAccess=10m
+      jerseyClient:
+        timeout: 3s
+        connectionRequestTimeout: 1s
+  - type: tracing
+  - type: doc-data-store
+    config:
+      storeType: emulator
+  - type: Imei-lookup
+    config:
+      csvFile: /config-data/imeiDb.csv
+  - type: kyc
+    config:
+      myInfoV3:
+        myInfoApiUri: http://ext-myinfo-emulator:8080/v3
+        myInfoApiClientId: STG2-MYINFO-SELF-TEST
+        myInfoApiClientSecret: 44d953c796cccebcec9bdc826852857ab412fbe2
+        myInfoRedirectUri: http://localhost:3001/callback
+        myInfoServerPublicKey: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqWWA2rH1wuBkd1zp0uOh+dnCRRcQWiI89ildk9UGSd3kgzPx1mYEL40cBOBVpSIkbRp65fJDjBm+MhzlHBgWZ1q27S30nczwnzAUJqUfJvLeCW7HLwqwPVSQlqby/n4MV2AKUu0jMacOeXE3Bevm92BEOH9wQhv81Rd7HZXRJGgMecqmVehMT7Mk88xHJvvWD1bYSQL5ADnNz1v0wq/afOVYPWAOl7xYoIgokYJQD3WwnKHVcotZcP8B5mu0AuMnP71JnzjVsRpwuO8N/m28fmzXCY7ARwRpz20Q6oOq09+ZMiJkpdT5TTqEF1u3FxTq5TY8CY60q9L5RqEUNJA9fQIDAQAB
+        myInfoClientPrivateKey: MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDGBRdsiDqKPGyHgOpzxmSU2EQkm+zYZLvlPlwkwyfFWLndFLZ3saxJS+LIixsFhunrrUT9ZZ0x+bB6MV55o70z4ABOJRFNWx1wbMGqdiC0Fyfpwad3iYpRVjZO+5etHA9JEoaTPoFxv+ktd8kVAL9P5I7/Pi6g1R+B2t2lsaE2bMSwtZqgs55gb7fsCR3Z4nQi7BddYR7MZ2lAMWf7h7Dkm6uRlGhl2RvtmYa6dXFnK3RhIpdQOUT3quyhweMGspowC/tYSG+BNhy1WukbwhIP5vTAvv1WbHTg+WaUUV+pP0TjPQcY73clHxNpI5zrNqDmwD2rogNfePKRUI63yBUfAgMBAAECggEAGy/7xVT25J/jLr+OcRLeIGmJAZW+8P7zpUfoksuQnFHQQwBjBRAJ3Y5jtrESprGdUFRb0oavDHuBtWUt2XmXspWgtRn1xC8sXZExDdxmJRPA0SFbgtgJe51gm3uDmarullPK0lCUqS92Ll3x58ZQfgGdeIHrGP3p84Q/Rk6bGcObcPhDYWSOYKm4i2DPM01bnZG2z4BcrWSseOmeWUxqZcMlGz9GAyepUU/EoqRIHxw/2Y+TGus1JSy5DdhPE0HAEWKZH729ZdoyikOZCMxApQglUkRwkwhtXzVAemm6OSoy3BEWvSEJh/F82tFrmquUoe/xd5JastlBHyD78RAakQKBgQDkHAzo1fowRI19tk7VCPn0zMdF/UTRghtLywc/4xnw1Nd13m+orArOdVzPlQokLVNL81dIVKXnId0Hw/kX8CRyRYz8tkL81spc39DfalZW7QI7Fschfq1Htgkxd/QEjBlIaqjkOjGSbX9xYjYU1Db8PuGoGXWOsYiv9PCsKR056wKBgQDeOzfZSpV5kX8SECJXRA+emyCnO9S29p0W+5BCTQp3OPnmbL7b/mGqBVJ0DC+IiN67Lu8xxzejswqLZqaRvmQuioqH+8mOGpXYZwhShAif2AuixxvL7OK6dvDmMqoKhBI9nZ9+XI60Cd/LjnWgyFO04uq4otnTukmYsSP+fp6wnQKBgEopYH0WjFfDAelcKzcRywouxZ7Yn9Ypoaw7nujDcfydhktY/R5uiLjk6T7H6tsmLU2lGLx4YNPLa6wJp+ODfKX2PMcwjojbYEFftu3cCaQLPE1vs2ANalLFOSnvINOVpOapXq2Mye8cUHHRh1mwQQwzeXQIivLQf2sNjG28lDbvAoGACsh80UJZNmjk7Y9y2yEmUN/eGb9Bdw9IWBEk0tLCKz7MgW3NZQdW3dUcRx1AQTPC+vowCQ5NmNfbLyBv/KpsWgXG6wpAoXCQzMtTEA3wDTGCfweCRcbcyYdz8PeMYK4/5FV9o7gCBKJmBY6IDqEpzqEkGolsYGWtpIcT5Alo0dECgYEA3hzC9NLwumi/1JWm+ASSADTO3rrGo9hicG/WKGzSHD5l1f+IO1SfmUN/6i2JjcnE07eYArNrCfbMgkFavj502ne2fSaYM4p0o147O9Ty8jCyY9vuh/ZGid6qUe3TBI6/okWfmYw6FVbRpNfVEeG7kPfkDW/JdH7qkWTFbh3eH1k=
+  - type: stripe-payment-processor
+    config:
+      projectId: ${GCP_PROJECT_ID}
+      stripeEventTopicId: stripe-event
+      stripeEventStoreSubscriptionId: stripe-event-store-sub
+      stripeEventReportSubscriptionId: stripe-event-report-sub
+      stripeEventRecurringPaymentSubscriptionId: stripe-event-recurring-payment-sub
+  - type: neo4j
+    config:
+      host: neo4j
+      protocol: bolt
+      onNewCustomerAction:
+        serviceInterface: org.ostelco.prime.storage.graph.OnNewCustomerAction
+        textReader:
+          type: classpathResource
+          filename: /OnNewCustomerAction.kts
+      allowedRegionsService:
+        serviceInterface: org.ostelco.prime.storage.graph.AllowedRegionsService
+        textReader:
+          type: classpathResource
+          filename: /AllowedRegionsService.kts
+      onKycApprovedAction:
+        serviceInterface: org.ostelco.prime.storage.graph.OnKycApprovedAction
+        textReader:
+          type: classpathResource
+          filename: /OnKycApprovedAction.kts
+      onRegionApprovedAction:
+        serviceInterface: org.ostelco.prime.storage.graph.OnRegionApprovedAction
+        textReader:
+          type: classpathResource
+          filename: /OnRegionApprovedAction.kts
+      hssNameLookupService:
+        serviceInterface: org.ostelco.prime.storage.graph.HssNameLookupService
+        textReader:
+          type: classpathResource
+          filename: /HssNameLookupService.kts
+  - type: analytics
+    config:
+      projectId: ${GCP_PROJECT_ID}
+      dataTrafficTopicId: data-traffic
+      purchaseInfoTopicId: purchase-info
+      simProvisioningTopicId: sim-provisioning
+      subscriptionStatusUpdateTopicId: subscription-status-update
+      refundsTopicId: analytics-refunds
+  - type: ocs
+    config:
+      lowBalanceThreshold: 0
+      pubSubChannel:
+        projectId: ${GCP_PROJECT_ID}
+        activateTopicId: ocs-activate
+        ccrSubscriptionId: ocs-ccr-sub
+      consumptionPolicyService:
+        serviceInterface: org.ostelco.prime.ocs.core.ConsumptionPolicy
+        textReader:
+          type: classpathResource
+          filename: /ConsumptionPolicyService.kts
+  - type: api
+  - type: firebase-app-notifier
+    config:
+      configFile: /secret/prime-service-account.json
+  - type: support
+  - type: admin
+  - type: graphql
+  - type: secure-archive
+    config:
+      keySetFilePathPrefix: /config/test_keyset_pub_cltxt
+      regions: [ "sg" ]
+  - type: scaninfo-store
+    config:
+      storeType: emulator
+  - type: sim-manager
+    config:
+      openApi:
+        name: SIM admin
+        description: SIM administration service
+        termsOfService: http://example.org
+        contactEmail: rmz@telenordigital.com
+        resourcePackage: org.ostelco
+      hlrs:
+        - name: Loltel
+          # this is a "SWT" style endpoint, so we should configure parameters
+          # accordingly.
+          hlrType: SWT
+          # This name, starting with a lowercase "l" is used in the
+          # api itself, and must match whatever the API expects
+          # the bss to be identified as.
+          hssNameUsedInAPI: loltel
+          endpoint: ${WG2_ENDPOINT}
+          userId: ${WG2_USER}
+          apiKey: ${WG2_API_KEY}
+        - name: M1
+          hlrType: DUMMY
+      profileVendors:
+        - name: Bar
+          es2plusEndpoint: ${SMDPLUS_ES2PLUS_ENDPOINT}
+          es9plusEndpoint: http://smdp-plus-emulator
+          requesterIdentifier: Dunderhonning
+      # Note, list must end with a wildcard match
+      phoneTypes:
+        - regex: "M1.android"
+          profile: OYA_M1_BF76
+        - regex: "M1.*"
+          profile: OYA_M1_STANDARD
+        - regex: "Loltel.android"
+          profile: Loltel_ANDROID_1
+        - regex: "Loltel.*"
+          profile: LOLTEL_IPHONE_1
+        - regex: "Foo.*"
+          profile: IPHONE_PROFILE_2
+      database:
+        driverClass: org.postgresql.Driver
+        user: postgres_user
+        password: postgres_password
+        url: jdbc:postgresql://postgres/sim-inventory
+
+server:
+  applicationConnectors:
+    - type: h2c
+      port: 8080
+      maxConcurrentStreams: 1024
+      initialStreamRecvWindow: 65535
+
+logging:
+  level: INFO
+  loggers:
+    org.ostelco: DEBUG
+    # suppress exception logged while connecting to real bigQuery 3 times before connecting to emulator
+    com.google.auth.oauth2.ComputeEngineCredentials: ERROR

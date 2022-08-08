@@ -1,0 +1,6 @@
+createOffer:
+  id: test-offer
+  existingProducts:
+    - 1GB_249NOK
+  existingSegments:
+    - test-segment

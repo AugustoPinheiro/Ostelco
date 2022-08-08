@@ -1,0 +1,34 @@
+logging:
+  level: INFO
+
+simBatchData: src/test/resources/fixtures/sample-sim-batch-for-sm-dp+.csv
+
+openApi:
+  name: SM-DP-emulator
+  description: Test fixture simulating ES2+ interactions of an SM-DP+
+  termsOfService: http://example.org
+  contactEmail: rmz@telenordigital.com
+  resourcePackage: org.ostelco
+
+server:
+  adminMinThreads: 1
+  adminMaxThreads: 64
+  adminContextPath: /
+  applicationContextPath: /
+  applicationConnectors:
+    - type: http
+      port: 8080
+
+
+httpClient:
+  timeout: 5000000ms
+
+roles:
+  definitions:
+    - name: flyfisher
+      description: Obviously just a dummy role
+
+es2plusClient:
+  requesterId: Dunderhonning
+  host: localhost
+  port: 8080

@@ -1,0 +1,160 @@
+syntax = "proto3";
+
+package org.ostelco.ocs.api;
+
+option java_multiple_files = true;
+option java_package = "org.ostelco.ocs.api";
+
+// OCS Service
+service OcsService {
+  rpc CreditControlRequest (stream CreditControlRequestInfo) returns (stream CreditControlAnswerInfo) {}
+  rpc Activate (ActivateRequest) returns (stream ActivateResponse) {}
+}
+
+message UserEquipmentInfo {
+  string imeisv = 1;
+}
+
+message ServiceUnit {
+  uint64 totalOctets = 1;
+  uint64 inputOctets = 2;
+  uint64 outputOctets = 3;
+  ReportingReason reportingReason = 4;
+}
+
+enum FinalUnitAction {
+  TERMINATE = 0;
+  REDIRECT = 1;
+  RESTRICT_ACCESS = 2;
+}
+
+enum RedirectAddressType {
+  IPV4_ADDRESS = 0;
+  IPV6_ADDRESS = 1;
+  URL = 2;
+  SIP_URL = 3;
+}
+
+enum CreditControlRequestType {
+  NONE = 0;
+  INITIAL_REQUEST = 1;
+  UPDATE_REQUEST = 2;
+  TERMINATION_REQUEST = 3;
+  EVENT_REQUEST = 4;
+}
+
+enum ReportingReason {
+  THRESHOLD = 0;
+  QHT = 1;
+  FINAL = 2;
+  QUOTA_EXHAUSTED = 3;
+  VALIDITY_TIME = 4;
+  OTHER_QUOTA_TYPE = 5;
+  RATING_CONDITION_CHANGE = 6;
+  FORCED_REAUTHORISATION = 7;
+  POOL_EXHAUSTED = 8;
+  UNUSED_QUOTA_TIMER = 9;
+}
+
+enum ResultCode {
+  UNKNOWN = 0;
+  DIAMETER_SUCCESS = 2001;
+  DIAMETER_LIMITED_SUCCESS = 2002;
+  DIAMETER_END_USER_SERVICE_DENIED = 4010;
+  DIAMETER_CREDIT_CONTROL_NOT_APPLICABLE = 4011;
+  DIAMETER_CREDIT_LIMIT_REACHED = 4012;
+  DIAMETER_INVALID_AVP_VALUE = 5004;
+  DIAMETER_MISSING_AVP = 5005;
+  DIAMETER_UNABLE_TO_COMPLY = 5012;
+  DIAMETER_USER_UNKNOWN = 5030;
+  DIAMETER_RATING_FAILED = 5031;
+}
+
+// 3GPP-PDP-Type #: 29.061
+enum PdpType {
+  IPV4 = 0;
+  PPP = 1;
+  IPV6 = 2;
+  IPV4V6 = 3;
+  NON_IP = 4;
+  UNSTRUCTURED = 5;
+  ETHERNET = 6;
+}
+
+message RedirectServer {
+  RedirectAddressType redirectAddressType = 1;
+  string redirectServerAddress = 2;
+}
+
+message FinalUnitIndication {
+  FinalUnitAction finalUnitAction = 1;
+  repeated string restrictionFilterRule = 2;
+  repeated string filterId = 3;
+  RedirectServer redirectServer = 4;
+  bool isSet = 5; // Since no optional valued in proto3 this is used to detect if element is set
+}
+
+message MultipleServiceCreditControl {
+  uint64 serviceIdentifier = 1;
+  uint64 ratingGroup = 2;
+  ServiceUnit requested = 3;
+  ServiceUnit used = 4;
+  ServiceUnit granted = 5;
+  FinalUnitIndication finalUnitIndication = 6;
+  uint32 validityTime = 7;
+  ReportingReason reportingReason = 8;
+  ResultCode resultCode = 9;
+  uint64 volumeQuotaThreshold = 10;
+  uint64 quotaHoldingTime = 11;
+}
+
+message PsInformation {
+  string calledStationId = 1;
+  string sgsnMccMnc = 2;
+  string imsiMccMnc = 3;
+  bytes userLocationInfo = 4;
+  PdpType pdpType = 5;
+  bytes pdpAddress = 6;
+}
+
+message ServiceInfo {
+  PsInformation psInformation = 1;
+}
+
+message CreditControlRequestInfo {
+  CreditControlRequestType type = 1;
+  string requestId = 2;
+  string msisdn = 3;
+  string imsi = 4;
+  repeated MultipleServiceCreditControl mscc = 5;
+  ServiceInfo serviceInformation = 6;
+  string topicId = 7;
+  uint32 requestNumber = 8;
+}
+
+message CreditControlAnswerInfo {
+  string requestId = 1;
+  string msisdn = 2;
+  repeated MultipleServiceCreditControl mscc = 3;
+  ResultCode resultCode = 4;
+  uint32 validityTime = 5;
+  ExtraInfo extraInfo = 6;
+  uint32 requestNumber = 7;
+}
+
+message ExtraInfo {
+  repeated MultipleServiceCreditControlInfo msccInfo= 1;
+}
+
+message MultipleServiceCreditControlInfo {
+  uint64 serviceIdentifier = 1;
+  uint64 ratingGroup = 2;
+  uint64 balance = 3;
+}
+
+message ActivateRequest {
+}
+
+message ActivateResponse {
+  string msisdn = 1;
+}
